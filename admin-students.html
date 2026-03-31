@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Students - HostelHub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+    <aside class="sidebar"></aside>
+    <main class="main-wrapper">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold mb-0">Student Management</h2>
+            <button class="btn btn-premium" onclick="location.href='signup.html'">
+                <i class="bi bi-person-plus me-2"></i> Register New Student
+            </button>
+        </div>
+
+        <div class="custom-table-card fade-in">
+            <div class="p-4 border-bottom">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0 bg-light" id="search-student" placeholder="Search by name, email or room...">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Student Details</th>
+                            <th>Room</th>
+                            <th>Allocation</th>
+                            <th>Course</th>
+                            <th>Fees</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="student-list">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Room Allocation Modal -->
+        <div class="modal fade" id="allocationModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow" style="border-radius: var(--radius);">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="fw-bold">Allocate Room</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="allocationForm">
+                        <div class="modal-body p-4">
+                            <p class="text-muted mb-3" id="allocation-student-name">Select an available room.</p>
+                            <label class="form-label">Available Rooms</label>
+                            <select class="form-select" id="allocation-room-select" required>
+                                <option value="">Loading rooms...</option>
+                            </select>
+                        </div>
+                        <div class="modal-footer border-0 pt-0">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-premium px-4">Allocate Room</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/data.js"></script>
+    <script>
+        let selectedStudentId = null;
+        let allocationModal = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = getCurrentUser();
+            if (!user || user.role !== 'admin') { window.location.href = 'login.html'; return; }
+            renderSidebar('Students', 'admin');
+            renderTopNav(user.name);
+            allocationModal = new bootstrap.Modal(document.getElementById('allocationModal'));
+
+            const searchEl = document.getElementById('search-student');
+            searchEl.addEventListener('input', () => loadStudents());
+            document.getElementById('allocationForm').addEventListener('submit', handleRoomAllocation);
+            loadStudents();
+        });
+
+        async function loadStudents() {
+            const search = (document.getElementById('search-student').value || '').toLowerCase();
+            const list = document.getElementById('student-list');
+
+            list.innerHTML = '<tr><td colspan="6" class="text-muted py-3">Loading...</td></tr>';
+
+            try {
+                const response = await apiRequest('/users/students');
+                const students = response.students || [];
+
+                const mapped = students.map(s => ({
+                    _id: s._id,
+                    name: s.name || '-',
+                    email: s.email || '-',
+                    phone: s.phone || '-',
+                    roomNo: s.room && s.room.roomNo ? s.room.roomNo : 'Not Allocated Yet',
+                    allocationStatus: s.allocationStatus || (s.room ? 'allocated' : 'pending'),
+                    course: s.course || '-',
+                    feesStatus: s.feesStatus || 'Pending'
+                }));
+
+                const filtered = mapped.filter(s =>
+                    s.name.toLowerCase().includes(search) ||
+                    s.email.toLowerCase().includes(search) ||
+                    String(s.roomNo).toLowerCase().includes(search)
+                );
+
+                if (!filtered.length) {
+                    list.innerHTML = '<tr><td colspan="6" class="text-muted py-3">No students found.</td></tr>';
+                    return;
+                }
+
+                list.innerHTML = filtered.map(s => {
+                    const statusClass = s.feesStatus === 'Paid' ? 'badge-success' : 'badge-danger';
+                    const allocationClass = s.allocationStatus === 'allocated' ? 'badge-success' : 'badge-warning text-dark';
+                    return `
+                        <tr>
+                            <td>
+                                <div class="fw-bold">${s.name}</div>
+                                <div class="small text-muted">${s.email}</div>
+                                <div class="small text-muted">${s.phone}</div>
+                            </td>
+                            <td><span class="fw-medium">${s.roomNo}</span></td>
+                            <td><span class="badge badge-custom ${allocationClass}">${s.allocationStatus}</span></td>
+                            <td>${s.course}</td>
+                            <td><span class="badge badge-custom ${statusClass}">${s.feesStatus}</span></td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    ${s.allocationStatus === 'pending' ? `
+                                    <button class="btn btn-sm btn-premium" onclick="openAllocateModal('${s._id}', '${s.name.replace(/'/g, "\\'")}')">
+                                        Allocate
+                                    </button>` : ''}
+                                    <button class="btn btn-sm btn-light border text-danger" onclick="deleteStudent('${s._id}')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (_e) {
+                const msg = _e && _e.message ? _e.message : 'Failed to load students.';
+                list.innerHTML = `<tr><td colspan="6" class="text-danger py-3">${msg}</td></tr>`;
+            }
+        }
+
+        async function openAllocateModal(studentId, studentName) {
+            selectedStudentId = studentId;
+            document.getElementById('allocation-student-name').textContent = `Allocate room for ${studentName}`;
+            const select = document.getElementById('allocation-room-select');
+            select.innerHTML = '<option value="">Loading available rooms...</option>';
+
+            try {
+                const response = await apiRequest('/rooms?availableOnly=true');
+                const rooms = response.rooms || [];
+                if (!rooms.length) {
+                    select.innerHTML = '<option value="">No available rooms</option>';
+                } else {
+                    select.innerHTML = `
+                        <option value="">Select a room</option>
+                        ${rooms.map(room => `
+                            <option value="${room._id}">
+                                Room ${room.roomNo} (${(room.occupants || []).length}/${room.capacity})
+                            </option>
+                        `).join('')}
+                    `;
+                }
+                allocationModal.show();
+            } catch (_e) {
+                alert('Failed to load available rooms.');
+            }
+        }
+
+        async function handleRoomAllocation(e) {
+            e.preventDefault();
+            const roomId = document.getElementById('allocation-room-select').value;
+            if (!selectedStudentId || !roomId) {
+                alert('Please select a room.');
+                return;
+            }
+            try {
+                await apiRequest('/rooms/allocate', {
+                    method: 'POST',
+                    body: JSON.stringify({ studentId: selectedStudentId, roomId })
+                });
+                allocationModal.hide();
+                selectedStudentId = null;
+                await loadStudents();
+            } catch (error) {
+                alert(error.message || 'Room allocation failed.');
+            }
+        }
+
+        async function deleteStudent(studentId) {
+            if (!studentId) return;
+            if (!confirm('Are you sure you want to delete this student?')) return;
+            try {
+                await apiRequest(`/users/students/${studentId}`, { method: 'DELETE' });
+                await loadStudents();
+            } catch (_e) {
+                alert('Failed to delete student.');
+            }
+        }
+    </script>
+</body>
+</html>
