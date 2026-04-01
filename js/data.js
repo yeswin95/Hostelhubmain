@@ -1,4 +1,4 @@
-const API_BASE_URL = window.HOSTELHUB_API_URL || "http://localhost:5001/api";
+const API_BASE_URL = window.HOSTELHUB_API_URL || `${window.location.origin}/api`;
 
 function getAuthToken() {
     return localStorage.getItem("authToken");
