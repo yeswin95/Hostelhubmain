@@ -13,6 +13,7 @@ const complaintRoutes = require("./routes/complaintRoutes");
 const noticeRoutes = require("./routes/noticeRoutes");
 const attendanceRoutes = require("./routes/attendanceRoutes");
 const menuRoutes = require("./routes/menuRoutes");
+const leaveRequestRoutes = require("./routes/leaveRequestRoutes");
 const { notFound, errorHandler } = require("./middlewares/errorMiddleware");
 
 const app = express();
@@ -78,6 +79,7 @@ app.use("/api/complaints", complaintRoutes);
 app.use("/api/notices", noticeRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/menu", menuRoutes);
+app.use("/api/leaves", leaveRequestRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

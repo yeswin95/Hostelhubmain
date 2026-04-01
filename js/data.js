@@ -76,6 +76,7 @@ function renderSidebar(activePage, role) {
         { name: 'Fees Status', icon: 'bi-credit-card-fill', href: 'student-fees.html' },
         { name: 'Attendance', icon: 'bi-calendar-check-fill', href: 'student-attendance.html' },
         { name: 'Complaints', icon: 'bi-chat-left-text-fill', href: 'student-complaints.html' },
+        { name: 'Leave Requests', icon: 'bi-calendar2-event', href: 'student-leaves.html' },
         { name: 'Hostel Menu', icon: 'bi-egg-fried', href: 'student-menu.html' },
         { name: 'Notice Board', icon: 'bi-megaphone-fill', href: 'student-notices.html' }
     ];
@@ -87,6 +88,7 @@ function renderSidebar(activePage, role) {
         { name: 'Fees', icon: 'bi-cash-stack', href: 'admin-fees.html' },
         { name: 'Attendance', icon: 'bi-calendar-event', href: 'admin-attendance.html' },
         { name: 'Complaints', icon: 'bi-exclamation-triangle-fill', href: 'admin-complaints.html' },
+        { name: 'Leave Requests', icon: 'bi-calendar2-check', href: 'admin-leaves.html' },
         { name: 'Menu', icon: 'bi-list-ul', href: 'admin-menu.html' },
         { name: 'Notices', icon: 'bi-info-circle-fill', href: 'admin-notices.html' }
     ];
