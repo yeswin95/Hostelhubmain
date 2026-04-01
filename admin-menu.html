@@ -90,18 +90,20 @@
 
         async function loadAdminMenu() {
             const list = document.getElementById('admin-menu-list');
+            const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            const today = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()];
             let menu = [];
             try {
                 const response = await apiRequest('/menu');
-                menu = response.menu || [];
+                menu = (response.menu || []).slice().sort((a, b) => dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day));
             } catch (_e) {
                 list.innerHTML = '<tr><td colspan="6" class="text-danger py-3">Failed to load menu.</td></tr>';
                 return;
             }
             
             list.innerHTML = menu.map(m => `
-                <tr>
-                    <td><span class="fw-bold">${m.day}</span></td>
+                <tr class="${m.day === today ? 'table-primary' : ''}">
+                    <td><span class="fw-bold">${m.day}</span>${m.day === today ? ' <span class="badge bg-primary ms-1">Today</span>' : ''}</td>
                     <td>${m.breakfast}</td>
                     <td>${m.lunch}</td>
                     <td>${m.snacks}</td>

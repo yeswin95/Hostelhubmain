@@ -37,6 +37,12 @@
                                 <label class="form-label">Room Number</label>
                                 <input type="text" class="form-control" id="r-no" required>
                             </div>
+                            <div class="mb-3">
+                                <label class="form-label">Hostel</label>
+                                <select class="form-select" id="r-hostel" required>
+                                    <option value="">Loading hostels...</option>
+                                </select>
+                            </div>
                             
                             <div class="mb-3">
                                 <label class="form-label">Room Type</label>
@@ -72,17 +78,19 @@
             renderTopNav(user.name);
             roomModalInstance = new bootstrap.Modal(document.getElementById('roomModal'));
 
-            await loadHostels();
-            await loadRooms();
-
             document.getElementById('roomForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
+                const hostelSelect = document.getElementById('r-hostel');
+                if (!hostelSelect || !hostelSelect.value) {
+                    alert('Please select a hostel before adding room.');
+                    return;
+                }
                 try {
                     await apiRequest('/rooms', {
                         method: 'POST',
                         body: JSON.stringify({
                             roomNo: document.getElementById('r-no').value.trim(),
-                            hostel: document.getElementById('r-hostel').value,
+                            hostel: hostelSelect.value,
                             roomType: document.getElementById('r-type').value,
                             capacity: parseInt(document.getElementById('r-capacity').value, 10)
                         })
@@ -94,10 +102,14 @@
                     alert(error.message || 'Failed to create room.');
                 }
             });
+
+            await loadHostels();
+            await loadRooms();
         });
 
         async function loadHostels() {
             const hostelSelect = document.getElementById('r-hostel');
+            if (!hostelSelect) return;
             hostelSelect.innerHTML = '<option value="">Loading hostels...</option>';
             try {
                 const response = await apiRequest('/hostels');

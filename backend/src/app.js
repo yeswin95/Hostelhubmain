@@ -3,6 +3,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
+const path = require("path");
 
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
@@ -15,6 +16,7 @@ const menuRoutes = require("./routes/menuRoutes");
 const { notFound, errorHandler } = require("./middlewares/errorMiddleware");
 
 const app = express();
+const frontendPath = path.join(__dirname, "../../");
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -23,7 +25,24 @@ const apiLimiter = rateLimit({
   legacyHeaders: false
 });
 
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https:"],
+        scriptSrcAttr: ["'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https:"],
+        fontSrc: ["'self'", "https:", "data:"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", "http://localhost:5001", "http://127.0.0.1:5001"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'self'"],
+        baseUri: ["'self'"]
+      }
+    }
+  })
+);
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN?.split(",") || "*"
@@ -31,18 +50,16 @@ app.use(
 );
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
+app.use(express.static(frontendPath));
 app.use("/api", apiLimiter);
 
 app.get("/api/health", (_req, res) => {
   res.status(200).json({ success: true, message: "HostelHub API healthy" });
 });
 
-// Helpful landing response for people hitting `/` directly.
+// Serve landing page from static frontend.
 app.get("/", (_req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "HostelHub API is running. Use /api/health or /api/* endpoints."
-  });
+  res.sendFile(path.join(frontendPath, "index.html"));
 });
 
 app.use("/api/auth", authRoutes);

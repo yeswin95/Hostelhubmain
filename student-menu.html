@@ -28,18 +28,19 @@
             renderTopNav(user.name);
             
             const container = document.getElementById('menu-container');
+            const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
             const today = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()];
             try {
                 const response = await apiRequest('/menu');
-                const menuData = response.menu || [];
+                const menuData = (response.menu || []).slice().sort((a, b) => dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day));
                 if (!menuData.length) {
                     container.innerHTML = '<p class="text-muted">Menu not available yet.</p>';
                     return;
                 }
                 container.innerHTML = menuData.map(m => `
-                <div class="menu-card shadow-sm ${m.day === today ? 'border-primary border-2' : ''}">
+                <div class="menu-card shadow-sm ${m.day === today ? 'border-primary border-2 shadow' : ''}">
                     <div class="menu-header ${m.day === today ? 'bg-primary' : 'bg-secondary'}">
-                        ${m.day} ${m.day === today ? '(Today)' : ''}
+                        ${m.day} ${m.day === today ? '<span class="ms-2 badge bg-light text-primary">Today</span>' : ''}
                     </div>
                     <div class="menu-body">
                         <div class="menu-item">

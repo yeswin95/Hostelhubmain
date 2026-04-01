@@ -46,7 +46,7 @@
     </main>
     <script src="js/data.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             const user = getCurrentUser();
             if (!user) { window.location.href = 'login.html'; return; }
             renderSidebar('Attendance', user.role);
