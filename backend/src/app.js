@@ -57,6 +57,13 @@ app.get("/api/health", (_req, res) => {
   res.status(200).json({ success: true, message: "HostelHub API healthy" });
 });
 
+app.get("/api", (_req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "HostelHub API is running. Use /api/health or routes under /api/auth, /api/users, etc."
+  });
+});
+
 // Serve landing page from static frontend.
 app.get("/", (_req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
