@@ -57,6 +57,7 @@ app.get("/api/health", (_req, res) => {
   res.status(200).json({ success: true, message: "HostelHub API healthy" });
 });
 
+// Explicit handler so GET /api is not a 404 (browser or uptime checks often hit this path).
 app.get("/api", (_req, res) => {
   res.status(200).json({
     success: true,

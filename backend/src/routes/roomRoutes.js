@@ -6,7 +6,8 @@ const {
   updateRoom,
   deleteRoom,
   allocateRoom,
-  deallocateRoom
+  deallocateRoom,
+  reallocateStudent
 } = require("../controllers/roomController");
 const { protect, authorize } = require("../middlewares/authMiddleware");
 const validate = require("../middlewares/validateMiddleware");
@@ -60,6 +61,17 @@ router.post(
   [body("studentId").isMongoId().withMessage("Valid student id is required")],
   validate,
   deallocateRoom
+);
+router.post(
+  "/reallocate",
+  protect,
+  authorize("admin"),
+  [
+    body("studentId").isMongoId().withMessage("Valid student id is required"),
+    body("newRoomId").isMongoId().withMessage("Valid target room id is required")
+  ],
+  validate,
+  reallocateStudent
 );
 
 module.exports = router;

@@ -111,4 +111,59 @@ const deallocateRoom = asyncHandler(async (req, res) => {
   }
 });
 
-module.exports = { createRoom, getRooms, updateRoom, deleteRoom, allocateRoom, deallocateRoom };
+const reallocateStudent = asyncHandler(async (req, res) => {
+  const { studentId, newRoomId } = req.body;
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const student = await User.findOne({ _id: studentId, role: "student" }).session(session);
+    if (!student) throw new ApiError(404, "Student not found");
+    if (!student.room) throw new ApiError(400, "Student has no room assigned");
+
+    const oldRoom = await Room.findById(student.room).session(session);
+    const newRoom = await Room.findById(newRoomId).session(session);
+    if (!newRoom) throw new ApiError(404, "Target room not found");
+    if (newRoom._id.equals(student.room)) {
+      throw new ApiError(400, "Student is already in this room");
+    }
+    if (newRoom.occupants.length >= newRoom.capacity) {
+      throw new ApiError(400, "Target room is full");
+    }
+
+    if (oldRoom) {
+      oldRoom.occupants = oldRoom.occupants.filter((id) => id.toString() !== student._id.toString());
+      await oldRoom.save({ session });
+    }
+
+    newRoom.occupants.push(student._id);
+    await newRoom.save({ session });
+
+    student.room = newRoom._id;
+    student.hostel = newRoom.hostel;
+    student.allocationStatus = "allocated";
+    await student.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.status(200).json({
+      success: true,
+      message: "Student moved to the new room"
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
+});
+
+module.exports = {
+  createRoom,
+  getRooms,
+  updateRoom,
+  deleteRoom,
+  allocateRoom,
+  deallocateRoom,
+  reallocateStudent
+};
