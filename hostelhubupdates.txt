@@ -1,0 +1,19 @@
+(done)attendance radio buttons and mark all
+
+(done)Leave requests details of students
+
+(done)Gender while allocating rooms
+
+(done)Until Room allocated students should not get Any further details
+
+(done)Confirm Passwords
+
+(done)CSS In Foodmenu
+
+(done)Notices section remove for student
+
+(done)Admin role Must be single add warden management and attendance by warden
+
+reallocate room feature
+
+(done)attendance mark today to bottom

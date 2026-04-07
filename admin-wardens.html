@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warden Management - HostelHub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+    <style>
+        .room-assign-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 0.75rem;
+        }
+        .room-choice {
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            background: #fff;
+            padding: 0.75rem;
+            cursor: pointer;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+        }
+        .room-choice:hover {
+            border-color: #cfd8ff;
+            box-shadow: 0 4px 14px rgba(38, 66, 255, 0.08);
+        }
+        .room-choice input {
+            accent-color: #2642ff;
+            margin-right: 0.55rem;
+            transform: translateY(1px);
+        }
+        .room-choice.selected {
+            border-color: #2642ff;
+            background: #f7f9ff;
+        }
+        .room-meta {
+            font-size: 0.78rem;
+            color: #6c757d;
+            margin-top: 0.35rem;
+            padding-left: 1.45rem;
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar"></aside>
+    <main class="main-wrapper">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold mb-0">Warden Management</h2>
+            <button class="btn btn-premium" data-bs-toggle="modal" data-bs-target="#wardenModal">
+                <i class="bi bi-person-plus me-2"></i>Add Warden
+            </button>
+        </div>
+
+        <div class="custom-table-card fade-in">
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Warden</th>
+                            <th>Phone</th>
+                            <th>Gender</th>
+                            <th>Assigned Rooms</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="wardens-list"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal fade" id="wardenModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow" style="border-radius: var(--radius);">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="fw-bold" id="warden-modal-title">Create Warden</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="wardenForm">
+                    <input type="hidden" id="warden-id">
+                    <div class="modal-body p-4">
+                        <div class="mb-3">
+                            <label class="form-label">Name</label>
+                            <input type="text" id="warden-name" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" id="warden-email" class="form-control" required>
+                        </div>
+                        <div class="mb-3" id="warden-password-wrap">
+                            <label class="form-label">Password</label>
+                            <input type="password" id="warden-password" class="form-control" minlength="6">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Phone</label>
+                            <input type="text" id="warden-phone" class="form-control">
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label">Gender</label>
+                            <select id="warden-gender" class="form-select">
+                                <option value="">Select gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-premium px-4">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="assignRoomsModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow" style="border-radius: var(--radius);">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="fw-bold">Assign Rooms</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4" id="assign-room-list"></div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-premium" id="save-assignments-btn">Save Assignments</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/data.js"></script>
+    <script>
+        let wardensCache = [];
+        let roomsCache = [];
+        let selectedWardenId = null;
+        let wardenModal = null;
+        let assignRoomsModal = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = getCurrentUser();
+            if (!user || user.role !== 'admin') { window.location.href = 'login.html'; return; }
+            renderSidebar('Wardens', 'admin');
+            renderTopNav(user.name);
+            wardenModal = new bootstrap.Modal(document.getElementById('wardenModal'));
+            assignRoomsModal = new bootstrap.Modal(document.getElementById('assignRoomsModal'));
+            document.getElementById('wardenForm').addEventListener('submit', submitWardenForm);
+            document.getElementById('save-assignments-btn').addEventListener('click', saveAssignments);
+            await loadData();
+        });
+
+        async function loadData() {
+            const [wardensRes, roomsRes] = await Promise.all([
+                apiRequest('/users/wardens'),
+                apiRequest('/rooms')
+            ]);
+            wardensCache = wardensRes.wardens || [];
+            roomsCache = roomsRes.rooms || [];
+            renderWardens();
+        }
+
+        function renderWardens() {
+            const tbody = document.getElementById('wardens-list');
+            if (!wardensCache.length) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-muted py-3">No wardens found.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = wardensCache.map((w) => `
+                <tr>
+                    <td><div class="fw-bold">${w.name}</div><div class="small text-muted">${w.email}</div></td>
+                    <td>${w.phone || '-'}</td>
+                    <td>${w.gender || '-'}</td>
+                    <td>${(w.assignedRooms || []).map((r) => r.roomNo).join(', ') || 'None'}</td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-light border" onclick="openEditWarden('${w._id}')"><i class="bi bi-pencil"></i></button>
+                            <button class="btn btn-sm btn-outline-primary" onclick="openAssignRooms('${w._id}')">Assign Rooms</button>
+                            <button class="btn btn-sm btn-light border text-danger" onclick="deleteWarden('${w._id}')"><i class="bi bi-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        window.openEditWarden = function (id) {
+            const w = wardensCache.find((x) => String(x._id) === String(id));
+            if (!w) return;
+            document.getElementById('warden-modal-title').textContent = 'Edit Warden';
+            document.getElementById('warden-id').value = w._id;
+            document.getElementById('warden-name').value = w.name || '';
+            document.getElementById('warden-email').value = w.email || '';
+            document.getElementById('warden-phone').value = w.phone || '';
+            document.getElementById('warden-gender').value = w.gender || '';
+            document.getElementById('warden-password-wrap').classList.add('d-none');
+            document.getElementById('warden-password').required = false;
+            wardenModal.show();
+        };
+
+        async function submitWardenForm(e) {
+            e.preventDefault();
+            const id = document.getElementById('warden-id').value;
+            const payload = {
+                name: document.getElementById('warden-name').value.trim(),
+                email: document.getElementById('warden-email').value.trim(),
+                phone: document.getElementById('warden-phone').value.trim(),
+                gender: document.getElementById('warden-gender').value || undefined
+            };
+            if (!id) {
+                payload.password = document.getElementById('warden-password').value;
+                await apiRequest('/users/wardens', { method: 'POST', body: JSON.stringify(payload) });
+            } else {
+                await apiRequest(`/users/wardens/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+            }
+            wardenModal.hide();
+            document.getElementById('wardenForm').reset();
+            document.getElementById('warden-id').value = '';
+            document.getElementById('warden-modal-title').textContent = 'Create Warden';
+            document.getElementById('warden-password-wrap').classList.remove('d-none');
+            document.getElementById('warden-password').required = true;
+            await loadData();
+        }
+
+        window.deleteWarden = async function (id) {
+            if (!confirm('Delete this warden?')) return;
+            await apiRequest(`/users/wardens/${id}`, { method: 'DELETE' });
+            await loadData();
+        };
+
+        window.openAssignRooms = function (id) {
+            selectedWardenId = id;
+            const w = wardensCache.find((x) => String(x._id) === String(id));
+            const selected = new Set((w?.assignedRooms || []).map((r) => String(r._id)));
+            const html = roomsCache.map((room) => {
+                const assignedWardens = (room.assignedWardens || []).map((aw) => aw.name || aw.email || 'Warden');
+                const isAssigned = selected.has(String(room._id));
+                const assignedToText = assignedWardens.length ? assignedWardens.join(', ') : 'Not assigned';
+                return `
+                    <label class="room-choice ${isAssigned ? 'selected' : ''}">
+                        <div class="d-flex align-items-center">
+                            <input type="checkbox" class="assign-room-check" value="${room._id}" ${isAssigned ? 'checked' : ''}>
+                            <span class="fw-semibold">Room ${room.roomNo}</span>
+                        </div>
+                        <div class="room-meta">
+                            ${room.hostel?.name || '-'}<br>
+                            Assigned to: ${assignedToText}
+                        </div>
+                    </label>
+                `;
+            }).join('');
+            document.getElementById('assign-room-list').innerHTML = html
+                ? `<div class="room-assign-grid">${html}</div>`
+                : '<p class="text-muted mb-0">No rooms available.</p>';
+            assignRoomsModal.show();
+        };
+
+        document.addEventListener('change', (e) => {
+            if (!e.target.classList.contains('assign-room-check')) return;
+            const wrapper = e.target.closest('.room-choice');
+            if (wrapper) wrapper.classList.toggle('selected', e.target.checked);
+        });
+
+        async function saveAssignments() {
+            if (!selectedWardenId) return;
+            const checked = Array.from(document.querySelectorAll('.assign-room-check:checked')).map((el) => el.value);
+            for (const room of roomsCache) {
+                const roomId = String(room._id);
+                const wardens = new Set((room.assignedWardens || []).map((w) => String(w._id || w)));
+                if (checked.includes(roomId)) {
+                    wardens.add(String(selectedWardenId));
+                } else {
+                    wardens.delete(String(selectedWardenId));
+                }
+                await apiRequest(`/rooms/${roomId}/wardens`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ wardenIds: Array.from(wardens) })
+                });
+            }
+            assignRoomsModal.hide();
+            await loadData();
+        }
+    </script>
+</body>
+</html>

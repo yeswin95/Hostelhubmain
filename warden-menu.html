@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warden Menu - HostelHub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+    <aside class="sidebar"></aside>
+    <main class="main-wrapper">
+        <h2 class="fw-bold mb-4">Manage Hostel Menu</h2>
+
+        <div class="custom-table-card fade-in">
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Day</th>
+                            <th>Breakfast</th>
+                            <th>Lunch</th>
+                            <th>Snacks</th>
+                            <th>Dinner</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="warden-menu-list"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="modal fade" id="menuModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow" style="border-radius: var(--radius);">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="fw-bold">Update Menu - <span id="modal-day-name"></span></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="menuForm">
+                        <input type="hidden" id="edit-day">
+                        <div class="modal-body p-4">
+                            <div class="mb-3"><label class="form-label">Breakfast</label><input type="text" class="form-control" id="m-breakfast" required></div>
+                            <div class="mb-3"><label class="form-label">Lunch</label><input type="text" class="form-control" id="m-lunch" required></div>
+                            <div class="mb-3"><label class="form-label">Snacks</label><input type="text" class="form-control" id="m-snacks" required></div>
+                            <div class="mb-3"><label class="form-label">Dinner</label><input type="text" class="form-control" id="m-dinner" required></div>
+                        </div>
+                        <div class="modal-footer border-0 pt-0">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-premium px-4">Update Menu</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/data.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const context = await initWardenPage("Menu");
+            if (!context) return;
+            await loadMenu();
+            document.getElementById("menuForm").addEventListener("submit", async (e) => {
+                e.preventDefault();
+                await updateMenu();
+            });
+        });
+
+        async function loadMenu() {
+            const list = document.getElementById("warden-menu-list");
+            const dayOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+            const today = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()];
+            try {
+                const response = await apiRequest("/menu");
+                const menu = (response.menu || []).slice().sort((a, b) => dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day));
+                list.innerHTML = menu.map((m) => `
+                    <tr class="${m.day === today ? "table-primary" : ""}">
+                        <td><span class="fw-bold">${m.day}</span>${m.day === today ? ' <span class="badge bg-primary ms-1">Today</span>' : ""}</td>
+                        <td>${m.breakfast}</td>
+                        <td>${m.lunch}</td>
+                        <td>${m.snacks}</td>
+                        <td>${m.dinner}</td>
+                        <td><button class="btn btn-sm btn-light border" onclick="openMenuModal('${m.day}')"><i class="bi bi-pencil"></i></button></td>
+                    </tr>
+                `).join("");
+            } catch (error) {
+                list.innerHTML = `<tr><td colspan="6" class="text-danger py-3">${error.message || "Failed to load menu."}</td></tr>`;
+            }
+        }
+
+        async function openMenuModal(day) {
+            const response = await apiRequest("/menu");
+            const menu = response.menu || [];
+            const m = menu.find((x) => x.day === day);
+            if (!m) return;
+
+            document.getElementById("modal-day-name").textContent = day;
+            document.getElementById("edit-day").value = day;
+            document.getElementById("m-breakfast").value = m.breakfast;
+            document.getElementById("m-lunch").value = m.lunch;
+            document.getElementById("m-snacks").value = m.snacks;
+            document.getElementById("m-dinner").value = m.dinner;
+            new bootstrap.Modal(document.getElementById("menuModal")).show();
+        }
+
+        async function updateMenu() {
+            const day = document.getElementById("edit-day").value;
+            try {
+                await apiRequest(`/menu/${day}`, {
+                    method: "PUT",
+                    body: JSON.stringify({
+                        breakfast: document.getElementById("m-breakfast").value,
+                        lunch: document.getElementById("m-lunch").value,
+                        snacks: document.getElementById("m-snacks").value,
+                        dinner: document.getElementById("m-dinner").value
+                    })
+                });
+                bootstrap.Modal.getInstance(document.getElementById("menuModal")).hide();
+                await loadMenu();
+            } catch (error) {
+                alert(error.message || "Failed to update menu.");
+            }
+        }
+    </script>
+</body>
+</html>
