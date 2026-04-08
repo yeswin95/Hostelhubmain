@@ -3,16 +3,14 @@ function resolveApiBaseUrl() {
         return window.HOSTELHUB_API_URL;
     }
 
-    const { protocol, hostname, port, origin } = window.location;
-    const isHttp = protocol === "http:" || protocol === "https:";
-    const isBackendPort = port === "5000" || port === "5001";
+    const { protocol, hostname, origin } = window.location;
 
-    // If frontend is served by backend, keep same-origin API calls.
-    if (isHttp && isBackendPort) {
+    // For deployed frontend (Render/Vercel/Netlify/etc), prefer same-origin API.
+    if (protocol === "http:" || protocol === "https:") {
         return `${origin}/api`;
     }
 
-    // If frontend is served by Live Server/file preview, use local backend.
+    // For file:// preview during local development, use local backend.
     return `http://${hostname || "localhost"}:5001/api`;
 }
 

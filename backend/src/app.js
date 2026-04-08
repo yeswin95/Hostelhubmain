@@ -18,6 +18,10 @@ const { notFound, errorHandler } = require("./middlewares/errorMiddleware");
 
 const app = express();
 const frontendPath = path.join(__dirname, "../../");
+const allowedOrigins = (process.env.CORS_ORIGIN || "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -36,7 +40,7 @@ app.use(
         styleSrc: ["'self'", "'unsafe-inline'", "https:"],
         fontSrc: ["'self'", "https:", "data:"],
         imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", "http://localhost:5001", "http://127.0.0.1:5001"],
+        connectSrc: ["'self'", "http://localhost:5001", "http://127.0.0.1:5001", ...allowedOrigins],
         objectSrc: ["'none'"],
         frameAncestors: ["'self'"],
         baseUri: ["'self'"]
@@ -46,7 +50,7 @@ app.use(
 );
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN?.split(",") || "*"
+    origin: allowedOrigins.length ? allowedOrigins : "*"
   })
 );
 app.use(express.json({ limit: "1mb" }));
