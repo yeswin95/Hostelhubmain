@@ -68,7 +68,7 @@
                             <label class="form-label fw-600">Phone</label>
                             <input type="text" id="phone" class="form-control bg-light" placeholder="Optional">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6" id="courseWrap">
                             <label class="form-label fw-600">Course</label>
                             <input type="text" id="course" class="form-control bg-light" placeholder="Optional">
                         </div>
@@ -105,6 +105,8 @@
         const adminKeyWrap = document.getElementById('adminKeyWrap');
         const adminKeyEl = document.getElementById('adminSignupKey');
         const phoneEl = document.getElementById('phone');
+        const courseWrap = document.getElementById('courseWrap');
+        const courseEl = document.getElementById('course');
         const genderEl = document.getElementById('gender');
         const studentFieldsWrap = document.getElementById('studentFields');
 
@@ -114,9 +116,13 @@
             adminKeyWrap.classList.toggle('d-none', !isWarden);
             adminKeyEl.required = isWarden;
             studentFieldsWrap.classList.remove('d-none');
+            courseWrap.classList.toggle('d-none', isWarden);
             genderEl.required = true;
             phoneEl.required = isWarden;
             phoneEl.placeholder = isWarden ? 'Required for warden' : 'Optional';
+            if (isWarden) {
+                courseEl.value = '';
+            }
         }
 
         roleEl.addEventListener('change', syncRoleUI);
@@ -143,7 +149,7 @@
             const course = document.getElementById('course').value.trim();
             const gender = genderEl.value;
             if (phone) payload.phone = phone;
-            if (course) payload.course = course;
+            if (payload.role !== 'warden' && course) payload.course = course;
             if (!gender) {
                 alert('Please select gender.');
                 return;

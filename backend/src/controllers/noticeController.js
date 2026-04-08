@@ -16,7 +16,11 @@ const getNotices = asyncHandler(async (req, res) => {
   const filter = { isPublished: true };
   if (req.user.role === "student") {
     const roomId = req.user.room;
-    filter.$or = [{ targetRooms: { $size: 0 } }];
+    filter.$or = [
+      { targetRooms: { $size: 0 } },
+      { targetRooms: { $exists: false } },
+      { targetRooms: null }
+    ];
     if (roomId) {
       filter.$or.push({ targetRooms: roomId });
     }

@@ -46,6 +46,11 @@
                     <div id="roommates-list">
                         <!-- Loaded dynamically -->
                     </div>
+                    <hr class="my-4">
+                    <h5 class="fw-bold mb-3">Warden Contact</h5>
+                    <div id="warden-list">
+                        <!-- Loaded dynamically -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -58,12 +63,14 @@
             let user = context.user;
 
             const list = document.getElementById('roommates-list');
+            const wardenList = document.getElementById('warden-list');
             try {
                 if (!user.room) {
                     document.getElementById('r-number').textContent = 'Not Allocated Yet';
                     document.getElementById('r-status').textContent = 'Pending';
                     document.getElementById('r-status').className = 'badge badge-custom badge-warning text-dark';
                     list.innerHTML = '<p class="text-muted">No room allocated yet.</p>';
+                    wardenList.innerHTML = '<p class="text-muted">Warden details will appear after room allocation.</p>';
                     return;
                 }
 
@@ -93,8 +100,24 @@
                         </div>
                     `).join('');
                 }
+
+                const wardens = room.assignedWardens || [];
+                if (!wardens.length) {
+                    wardenList.innerHTML = '<p class="text-muted">No warden assigned to this room yet.</p>';
+                } else {
+                    wardenList.innerHTML = wardens.map((w) => `
+                        <div class="d-flex align-items-center gap-3 mb-3 pb-3 border-bottom last-border-0">
+                            <div class="user-avatar">${(w.name || '-').charAt(0)}</div>
+                            <div>
+                                <div class="fw-bold">${w.name || '-'}</div>
+                                <div class="small text-muted">${w.phone || 'Phone not available'}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
             } catch (_e) {
                 list.innerHTML = '<p class="text-danger">Failed to load room details.</p>';
+                wardenList.innerHTML = '<p class="text-danger">Failed to load warden details.</p>';
             }
         });
     </script>

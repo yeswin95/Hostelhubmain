@@ -81,7 +81,7 @@ function logout() {
     window.location.href = "login.html";
 }
 
-const STUDENT_ALLOWED_WHEN_UNALLOCATED = new Set(["My Profile", "Room Details"]);
+const STUDENT_ALLOWED_WHEN_UNALLOCATED = new Set(["My Profile", "Room Details", "Notices"]);
 
 function isStudentAllocated(user) {
     return !!(user && user.role === "student" && user.room);
@@ -159,6 +159,7 @@ function renderSidebar(activePage, role) {
         { name: 'Dashboard', icon: 'bi-grid-1x2-fill', href: 'student-dashboard.html' },
         { name: 'My Profile', icon: 'bi-person-fill', href: 'student-profile.html' },
         { name: 'Room Details', icon: 'bi-door-closed-fill', href: 'student-room.html' },
+        { name: 'Notices', icon: 'bi-info-circle-fill', href: 'student-notices.html' },
         { name: 'Fees Status', icon: 'bi-credit-card-fill', href: 'student-fees.html' },
         { name: 'Attendance', icon: 'bi-calendar-check-fill', href: 'student-attendance.html' },
         { name: 'Complaints', icon: 'bi-chat-left-text-fill', href: 'student-complaints.html' },

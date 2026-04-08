@@ -30,7 +30,7 @@ const getRooms = asyncHandler(async (req, res) => {
   const rooms = await query
     .populate("hostel", "name code")
     .populate("occupants", "name email")
-    .populate("assignedWardens", "name email")
+    .populate("assignedWardens", "name email phone")
     .sort({ createdAt: -1 });
 
   const filteredRooms =

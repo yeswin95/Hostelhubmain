@@ -14,6 +14,8 @@
 
 (done)Admin role Must be single add warden management and attendance by warden
 
-reallocate room feature
+(done)reallocate room feature
 
-(done)attendance mark today to bottom
+(done)Sort features in studens management
+
+(done)add warden details in students room 

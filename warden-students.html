@@ -22,10 +22,10 @@
                     <thead>
                         <tr>
                             <th>Student</th>
-                            <th>Room</th>
-                            <th>Course</th>
-                            <th>Gender</th>
-                            <th>Fees</th>
+                            <th class="sortable-header" data-sort-key="roomNo" style="cursor:pointer;">Room</th>
+                            <th class="sortable-header" data-sort-key="course" style="cursor:pointer;">Course</th>
+                            <th class="sortable-header" data-sort-key="gender" style="cursor:pointer;">Gender</th>
+                            <th class="sortable-header" data-sort-key="feesStatus" style="cursor:pointer;">Fees</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -33,15 +33,48 @@
                 </table>
             </div>
         </div>
+
+        <div class="modal fade" id="allocationModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow" style="border-radius: var(--radius);">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="fw-bold" id="allocation-modal-title">Reallocate Room</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="allocationForm">
+                        <div class="modal-body p-4">
+                            <p class="text-muted mb-3" id="allocation-student-name">Move student to another room.</p>
+                            <label class="form-label">Available Rooms</label>
+                            <select class="form-select" id="allocation-room-select" required>
+                                <option value="">Loading rooms...</option>
+                            </select>
+                        </div>
+                        <div class="modal-footer border-0 pt-0">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-premium px-4" id="allocation-submit-btn">Reallocate Room</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </main>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/data.js"></script>
     <script>
         let studentsCache = [];
+        let selectedStudentId = null;
+        let allocationModal = null;
+        let sortState = { key: null, dir: 0 };
 
         document.addEventListener("DOMContentLoaded", async () => {
             const context = await initWardenPage("Students");
             if (!context) return;
+            allocationModal = new bootstrap.Modal(document.getElementById('allocationModal'));
             document.getElementById("search-student").addEventListener("input", renderStudents);
+            document.getElementById('allocationForm').addEventListener('submit', handleRoomReallocation);
+            document.querySelectorAll('.sortable-header').forEach((header) => {
+                header.addEventListener('click', () => toggleSort(header.getAttribute('data-sort-key')));
+            });
             await loadStudents();
         });
 
@@ -60,7 +93,15 @@
         function renderStudents() {
             const list = document.getElementById("student-list");
             const q = (document.getElementById("search-student").value || "").toLowerCase();
-            const filtered = studentsCache.filter((s) => {
+            const mapped = studentsCache.map((s, idx) => ({
+                ...s,
+                _idx: idx,
+                roomNo: s.room?.roomNo || "Not Allocated",
+                course: s.course || "-",
+                gender: s.gender || "-",
+                feesStatus: s.feesStatus || "Pending"
+            }));
+            const filtered = mapped.filter((s) => {
                 const roomNo = s.room && s.room.roomNo ? s.room.roomNo : "";
                 return (
                     String(s.name || "").toLowerCase().includes(q) ||
@@ -68,6 +109,16 @@
                     String(roomNo).toLowerCase().includes(q)
                 );
             });
+            if (sortState.key && sortState.dir !== 0) {
+                filtered.sort((a, b) => {
+                    const av = String(a[sortState.key] || "").toLowerCase();
+                    const bv = String(b[sortState.key] || "").toLowerCase();
+                    if (av === bv) return a._idx - b._idx;
+                    return av > bv ? sortState.dir : -sortState.dir;
+                });
+            } else {
+                filtered.sort((a, b) => a._idx - b._idx);
+            }
             if (!filtered.length) {
                 list.innerHTML = '<tr><td colspan="6" class="text-muted py-3">No students found in your assigned rooms.</td></tr>';
                 return;
@@ -84,12 +135,92 @@
                     <td>${s.gender || "-"}</td>
                     <td>${s.feesStatus || "Pending"}</td>
                     <td>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteStudent('${s._id}')">
-                            <i class="bi bi-trash"></i>
-                        </button>
+                        <div class="d-flex gap-2">
+                            ${s.room && s.room._id ? `
+                                <button class="btn btn-sm btn-outline-primary" onclick="openReallocateModal('${s._id}', '${String((s.name || "-")).replace(/'/g, "\\'")}', '${s.room._id}')">
+                                    Reallocate
+                                </button>
+                            ` : ''}
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteStudent('${s._id}')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `).join("");
+        }
+
+        function toggleSort(key) {
+            if (sortState.key !== key) {
+                sortState = { key, dir: 1 };
+            } else if (sortState.dir === 1) {
+                sortState = { key, dir: -1 };
+            } else {
+                sortState = { key: null, dir: 0 };
+            }
+            updateSortHeaderUI();
+            renderStudents();
+        }
+
+        function updateSortHeaderUI() {
+            document.querySelectorAll('.sortable-header').forEach((header) => {
+                const key = header.getAttribute('data-sort-key');
+                const label = header.textContent.split(' ')[0];
+                if (sortState.key === key && sortState.dir === 1) {
+                    header.textContent = `${label} ↑`;
+                } else if (sortState.key === key && sortState.dir === -1) {
+                    header.textContent = `${label} ↓`;
+                } else {
+                    header.textContent = label;
+                }
+            });
+        }
+
+        async function openReallocateModal(studentId, studentName, currentRoomId) {
+            selectedStudentId = studentId;
+            document.getElementById('allocation-student-name').textContent = `Move ${studentName} to another assigned room`;
+            const select = document.getElementById('allocation-room-select');
+            select.innerHTML = '<option value="">Loading available rooms...</option>';
+            try {
+                const response = await apiRequest('/rooms?availableOnly=true');
+                let rooms = response.rooms || [];
+                rooms = rooms.filter((room) => String(room._id) !== String(currentRoomId));
+                if (!rooms.length) {
+                    select.innerHTML = '<option value="">No suitable rooms available</option>';
+                } else {
+                    select.innerHTML = `
+                        <option value="">Select a room</option>
+                        ${rooms.map((room) => `
+                            <option value="${room._id}">
+                                Room ${room.roomNo} (${(room.occupants || []).length}/${room.capacity})
+                            </option>
+                        `).join('')}
+                    `;
+                }
+                allocationModal.show();
+            } catch (_e) {
+                alert('Failed to load available rooms.');
+            }
+        }
+
+        async function handleRoomReallocation(e) {
+            e.preventDefault();
+            const newRoomId = document.getElementById('allocation-room-select').value;
+            if (!selectedStudentId || !newRoomId) {
+                alert('Please select a room.');
+                return;
+            }
+            try {
+                await apiRequest('/rooms/reallocate', {
+                    method: 'POST',
+                    body: JSON.stringify({ studentId: selectedStudentId, newRoomId })
+                });
+                allocationModal.hide();
+                selectedStudentId = null;
+                await loadStudents();
+            } catch (error) {
+                alert(error.message || 'Room reallocation failed.');
+            }
         }
 
         async function deleteStudent(studentId) {
